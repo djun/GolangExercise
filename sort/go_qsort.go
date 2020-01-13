@@ -6,8 +6,34 @@ import (
 	"time"
 )
 
+
+type IComparable interface {
+	LessEqual(interface{}) bool
+}
+
+type ISortable interface {
+	Sort()
+}
+
+
+type Integer int
+
+func (a Integer) LessEqual(b interface{}) bool {
+	k, _ := b.(Integer)
+	return a <= k
+}
+
+type Float float64
+
+func (a Float) LessEqual(b interface{}) bool {
+	k, _ := b.(Float)
+	return a <= k
+}
+
+
 type SortableArr struct {
-	Arr []int64
+	Arr []IComparable
+	ISortable
 }
 
 func (a SortableArr) Sort() {
@@ -18,11 +44,10 @@ func (a SortableArr) Sort() {
 	}
 
 	i, j, key := 0, len(a.Arr) - 1, a.Arr[0]
-
 	for i < j {
-		for i < j && key <= a.Arr[j] { j-- }
+		for i < j && key.LessEqual(a.Arr[j]) { j-- }
 		a.Arr[i] = a.Arr[j]
-		for i < j && key >= a.Arr[i] { i++ }
+		for i < j && !key.LessEqual(a.Arr[i]) { i++ }
 		a.Arr[j] = a.Arr[i]
 	}
 
@@ -39,29 +64,30 @@ func (a SortableArr) Sort() {
 
 func main() {
 	// 产生随机数组成的数组
+	const size = 1000000
 	rand.Seed(time.Now().UnixNano())
-	arr := [1000000]int64{}
-	for ni, _ := range arr {
-		arr[ni] = int64(rand.Intn(len(arr)))
+	arr := make([]IComparable, 0)
+	for i:=0; i<size; i++ {
+		arr = append(arr, Integer(rand.Intn(size)))
 	}
 
 	// 准备排序
-	SortableArr := SortableArr { Arr: arr[:] }
-	fmt.Println(SortableArr.Arr)
+	s := &SortableArr { Arr: arr }
+	fmt.Println(s.Arr)
 
 	// 进行排序，并计时
 	start := time.Now()
-	SortableArr.Sort()
+	s.Sort()
 	fmt.Printf("sort time: %s\n", time.Since(start))
 	
 	time.Sleep(1e9)
 	// 看排序结果
-	fmt.Println(SortableArr.Arr)
+	fmt.Println(s.Arr)
 	
 	// 验证排序结果是否准确
 	for ni, _ := range arr {
 		if ni > 0 {
-			if arr[ni-1] > arr[ni] {
+			if !arr[ni-1].LessEqual(arr[ni]) {
 				fmt.Println("failed!")
 				return
 			}
