@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"math/rand"
 	"time"
 )
@@ -36,29 +37,39 @@ type SortableArr struct {
 	ISortable
 }
 
-func (a SortableArr) Sort() {
-	// 采用快速排序算法（递归版本）
+func Sort(x SortableArr, wg *sync.WaitGroup) {
+	wg.Add(1)
 
-	if len(a.Arr) <= 1 {
+	if len(x.Arr) <= 1 {
 		return
 	}
 
-	i, j, key := 0, len(a.Arr) - 1, a.Arr[0]
+	i, j, key := 0, len(x.Arr) - 1, x.Arr[0]
 	for i < j {
-		for i < j && key.LessEqual(a.Arr[j]) { j-- }
-		a.Arr[i] = a.Arr[j]
-		for i < j && !key.LessEqual(a.Arr[i]) { i++ }
-		a.Arr[j] = a.Arr[i]
+		for i < j && key.LessEqual(x.Arr[j]) { j-- }
+		x.Arr[i] = x.Arr[j]
+		for i < j && !key.LessEqual(x.Arr[i]) { i++ }
+		x.Arr[j] = x.Arr[i]
 	}
 
-	a.Arr[i] = key
-	// fmt.Println(i, key, a.Arr)
+	x.Arr[i] = key
+	// fmt.Println(i, key, x.Arr)
 	if i > 0 {
-		go (SortableArr{ Arr: a.Arr[: i] }).Sort()
+		go Sort(SortableArr{ Arr: x.Arr[: i] }, wg)
 	}
-	if i + 1 < len(a.Arr) {
-		go (SortableArr{ Arr: a.Arr[i+1:] }).Sort()
+	if i + 1 < len(x.Arr) {
+		go Sort(SortableArr{ Arr: x.Arr[i+1:] }, wg)
 	}
+
+	wg.Done()
+}
+
+func (a SortableArr) RunSort() {
+	// 采用快速排序算法（递归版本）
+
+	var waitGroup sync.WaitGroup
+	go Sort(a, &waitGroup)
+	waitGroup.Wait()
 }
 
 
@@ -77,10 +88,10 @@ func main() {
 
 	// 进行排序，并计时
 	start := time.Now()
-	s.Sort()
-	fmt.Printf("sort time: %s\n", time.Since(start))
+	s.RunSort()
+	fmt.Printf("sort time: %d ms\n", time.Since(start).Milliseconds())
 	
-	time.Sleep(1e9)
+	// time.Sleep(1e9)
 	// 看排序结果
 	fmt.Println(s.Arr)
 	
